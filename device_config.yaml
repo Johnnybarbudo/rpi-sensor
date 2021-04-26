@@ -1,0 +1,4 @@
+project_id: environment-data
+topic_id: datalogger
+device_id: RPI_0001
+device_type: SPECTRUM
