@@ -10,7 +10,7 @@ class Main:
         self.publisher = Publisher()
 
         self.period_length = 1
-        self.batch_size = 1
+        self.batch_size = 180
         self.loops_executed = 0
         self.results = []
         self.run()
