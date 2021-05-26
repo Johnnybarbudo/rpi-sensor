@@ -1,4 +1,5 @@
 project_id: environment-data
 topic_id: datalogger
+dataset_id: farm_one
 device_id: RPI_0001
 device_type: SPECTRUM

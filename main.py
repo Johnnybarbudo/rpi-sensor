@@ -6,11 +6,12 @@ from publisher import Publisher
 
 class Main:
     def __init__(self):
+        print("Starting data acquisition")
         self.spectrum_sensor = SpectrumSensor()
         self.publisher = Publisher()
 
         self.period_length = 1
-        self.batch_size = 180
+        self.batch_size = 1
         self.loops_executed = 0
         self.results = []
         self.run()
@@ -44,6 +45,7 @@ class Main:
 
     def submit_data(self):
         self.publisher.publish(self.results)
+        print(f"{len(self.results)} rows published")
         self.results = []
 
 

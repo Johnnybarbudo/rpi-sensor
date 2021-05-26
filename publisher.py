@@ -18,4 +18,10 @@ class Publisher:
 
     def publish(self, data):
         data_to_publish = json.dumps(data).encode("utf-8")
-        self.publisher.publish(self.topic_path, data_to_publish, device_id=self.device_id, device_type=self.device_type)
+        self.publisher.publish(
+            self.topic_path,
+            data_to_publish,
+            device_id=self.device_id,
+            device_type=self.device_type,
+            dataset_id=self.dataset_id,
+        )
