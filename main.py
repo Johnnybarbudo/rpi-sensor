@@ -7,8 +7,11 @@ from publisher import Publisher
 class Main:
     def __init__(self):
         print("Starting data acquisition")
-        self.spectrum_sensor = SpectrumSensor()
         self.publisher = Publisher()
+        sensors = {
+            "SPECTRUM": SpectrumSensor()
+        }
+        self.sensor = sensors[self.publisher.device_type]
 
         self.period_length = 1
         self.batch_size = 1
@@ -27,7 +30,7 @@ class Main:
     def get_data(self, t):
         # Execute current iteration
         start_time = time()
-        result = self.spectrum_sensor.measure()
+        result = self.sensor.measure()
         end_time = time()
 
         if (end_time - start_time) * 1000 > self.period_length * 1000:
