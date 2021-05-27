@@ -1,1 +1,4 @@
 adafruit-circuitpython-as7341
+pyyaml
+google-api-python-client
+google-cloud-pubsub

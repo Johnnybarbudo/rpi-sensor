@@ -8,11 +8,41 @@ python3 -m pip install -e .
 GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 ```
 
-### Comissioning
-1. Raspberry OS
-2. WiFi config
-3. Enable SSH, set private key, disable password auth
-4. autossh to jumpbox
-5. Clone RPi-Sensor repo
-6. Set GCP credentials
-7. Set device config
+## Comissioning
+### Find Raspberry Pi on local network
+
+1. `arp -a` to list all IPs on LAN
+2. Find IPs where the first 3 blocks are the same, then run `sudo nmap -sP 192.168.43.0/24` (change the first 3 blocks as needed). This will show you which one is the RPi
+
+### Connect to RPi
+
+`ssh pi@192.168.43.201` (change IP to the one you found above, only works on local network)
+
+### Set up RPi
+1. Execute the commands below:
+    ```jsx
+    sudo apt update
+    sudo apt full-upgrade
+    ssh-keygen
+    cat ~/.ssh/id_rsa.pub
+    ```
+2. Add output of above command to GitHub SSH keys and GCP Jumpbox Instance
+3. Execute the commands below:
+    ```jsx
+    sudo apt install git python3-pip -y
+    git clone git@github.com:raiz-lisbon/rpi-sensor.git
+    cd rpi-sensor
+    pip3 install -r requirements.txt
+    touch serviceaccount_pubsub.json
+    ```
+4. Add following service account credentials with 'Pub/Sub Publisher' role to `serviceaccount_pubsub.json`
+5. Update values in `/home/pi/rpi-sensor/device_config.yaml` as needed
+6. `sudo raspi-config` Interface Options > Enable I2C Interface
+7. Install gcloud
+    ```
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && 
+    sudo apt-get install apt-transport-https ca-certificates gnupg -y &&
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - &&
+    sudo apt-get update && sudo apt-get install google-cloud-sdk -y &&
+    gcloud init
+    ```
