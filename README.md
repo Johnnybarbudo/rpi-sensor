@@ -55,3 +55,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
     ```
     @reboot /home/pi/rpi-sensor/startup.sh
     ```
+10. From Jumpbox, connect to RPi
+    ```
+    ssh localhost -p 10001 -l pi
+    ```
