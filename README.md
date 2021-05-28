@@ -29,7 +29,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 2. Add output of above command to GitHub SSH keys and GCP Jumpbox Instance
 3. Execute the commands below:
     ```jsx
-    sudo apt install git python3-pip -y
+    sudo apt install git python3-pip autossh -y
     git clone git@github.com:raiz-lisbon/rpi-sensor.git
     cd rpi-sensor
     pip3 install -r requirements.txt
@@ -45,4 +45,13 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - &&
     sudo apt-get update && sudo apt-get install google-cloud-sdk -y &&
     gcloud init
+    ```
+8. To make sure SSH keys are used, execute
+    ```
+    eval `ssh-agent`
+    ssh-add
+    ```
+9. Add following line to crontab (open with `crontab -e`)
+    ```
+    @reboot /home/pi/rpi-sensor/startup.sh
     ```
