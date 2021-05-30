@@ -3,14 +3,14 @@ import json
 from pathlib import Path
 from time import sleep
 from datetime import datetime, timezone
-from sensors.spectrum.as7341 import sensor
+from sensors.spectrum.as7341 import get_sensor
 from sensors.spectrum.constants import CONST
 from adafruit_as7341 import Gain
 
 
 class SpectrumSensor:
     def __init__(self):
-        self.sensor = sensor
+        self.sensor = get_sensor()
         self.sensor.gain = 7
         self.load_config()
 

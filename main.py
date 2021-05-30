@@ -1,6 +1,7 @@
 from sched import scheduler
 from time import time, sleep
 from sensors.spectrum.spectrum import SpectrumSensor
+from sensors.hum_temp.hum_temp import HumTempSensor
 from publisher import Publisher
 
 
@@ -8,10 +9,8 @@ class Main:
     def __init__(self):
         print("Starting data acquisition")
         self.publisher = Publisher()
-        sensors = {
-            "SPECTRUM": SpectrumSensor()
-        }
-        self.sensor = sensors[self.publisher.device_type]
+        sensors = {"SPECTRUM": SpectrumSensor, "HUM_TEMP": HumTempSensor}
+        self.sensor = sensors[self.publisher.device_type]()
 
         self.period_length = self.publisher.period_length
         self.batch_size = self.publisher.batch_size
@@ -31,6 +30,7 @@ class Main:
         # Execute current iteration
         start_time = time()
         result = self.sensor.measure()
+        print(result)
         end_time = time()
 
         if (end_time - start_time) * 1000 > self.period_length * 1000:

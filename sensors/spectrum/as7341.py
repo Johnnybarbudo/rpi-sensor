@@ -16,8 +16,11 @@ def channel_NIR(self):
     return self._channel_5_data
 
 
-AS7341.channel_CLEAR = property(channel_CLEAR)
-AS7341.channel_NIR = property(channel_NIR)
+def get_sensor():
+    AS7341.channel_CLEAR = property(channel_CLEAR)
+    AS7341.channel_NIR = property(channel_NIR)
 
-i2c = busio.I2C(board.SCL, board.SDA)
-sensor = AS7341(i2c)
+    i2c = busio.I2C(board.SCL, board.SDA)
+    sensor = AS7341(i2c)
+
+    return sensor
