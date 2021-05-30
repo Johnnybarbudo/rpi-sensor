@@ -3,3 +3,5 @@ topic_id: datalogger
 dataset_id: farm_one
 device_id: RPI_0001
 device_type: SPECTRUM
+period_length: 1
+batch_size: 180

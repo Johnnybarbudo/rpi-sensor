@@ -13,8 +13,8 @@ class Main:
         }
         self.sensor = sensors[self.publisher.device_type]
 
-        self.period_length = 1
-        self.batch_size = 1
+        self.period_length = self.publisher.period_length
+        self.batch_size = self.publisher.batch_size
         self.loops_executed = 0
         self.results = []
         self.run()
