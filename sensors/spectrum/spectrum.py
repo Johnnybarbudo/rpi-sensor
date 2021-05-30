@@ -72,23 +72,41 @@ class SpectrumSensor:
                     "astep": self.sensor.astep,
                     "atime": self.sensor.atime,
                     "tint": round(self.integration_time, 3),
+                    "normal_gain": CONST["normal_gain"],
+                    "normal_tint_ms": CONST["normal_tint_ms"],
                 }
             ),
+            "raw_counts": {},
         }
-        for channel in CONST["channels"]:
+        for channel in CONST["relative_gains"]:
             raw_count = getattr(self.sensor, f"channel_{channel}")
-            norm_count = self.normalize_count(raw_count)
+            norm_count = self.normalize_count(raw_count, channel)
 
-            row[f"ch_{channel}_raw_count"] = raw_count
+            row["raw_counts"][channel] = raw_count
             row[f"ch_{channel}_norm_count"] = round(norm_count)
+
+        # Get total normalized counts
+        total_norm_count = 0
+        for channel in CONST["relative_gains"]:
+            total_norm_count += row[f"ch_{channel}_norm_count"]
+        row["total_norm_count"] = total_norm_count
 
         return row
 
-    def normalize_count(self, raw_count):
+    def normalize_count(self, raw_count, channel):
         # Adjust for gain
-        gain_adjusted_count = raw_count * CONST["calibration_gain"] / Gain.string[self.sensor.gain]
+        gain_adjusted_count = raw_count * CONST["normal_gain"] / Gain.string[self.sensor.gain]
 
         # Adjust for integration time
-        time_adjusted_count = gain_adjusted_count * CONST["calibration_tint_ms"] / self.integration_time
+        time_adjusted_count = gain_adjusted_count * CONST["normal_tint_ms"] / self.integration_time
 
-        return time_adjusted_count
+        # Adjust for relative sensitivity
+        sensitivity_adjusted_count = time_adjusted_count / CONST["relative_gains"][channel]
+
+        if "nm" not in channel:
+            return sensitivity_adjusted_count
+
+        # Adjust for photon energy
+        photon_energy_adjusted_count = sensitivity_adjusted_count / CONST["relative_photon_energies"][channel]
+
+        return photon_energy_adjusted_count
