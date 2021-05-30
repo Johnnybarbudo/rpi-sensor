@@ -91,6 +91,7 @@ class SpectrumSensor:
         for channel in CONST["relative_gains"]:
             total_norm_count += row[f"ch_{channel}_norm_count"]
         row["total_norm_count"] = total_norm_count
+        print("Total sensor count: ", total_norm_count)
 
         return row
 

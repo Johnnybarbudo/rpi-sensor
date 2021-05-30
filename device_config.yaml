@@ -4,4 +4,4 @@ dataset_id: farm_one
 device_id: RPI_0001
 enabled_sensors: ["SPECTRUM", "HUM_TEMP"]
 period_length: 1
-batch_size: 1
+batch_size: 10
