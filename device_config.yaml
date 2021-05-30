@@ -2,6 +2,6 @@ project_id: environment-data
 topic_id: datalogger
 dataset_id: farm_one
 device_id: RPI_0001
-device_type: HUM_TEMP
+enabled_sensors: ["SPECTRUM", "HUM_TEMP"]
 period_length: 1
-batch_size: 180
+batch_size: 1

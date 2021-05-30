@@ -16,12 +16,12 @@ class Publisher:
             for config_key in config_values:
                 setattr(self, config_key, config_values[config_key])
 
-    def publish(self, data):
+    def publish(self, data, data_type):
         data_to_publish = json.dumps(data).encode("utf-8")
         self.publisher.publish(
             self.topic_path,
             data_to_publish,
             device_id=self.device_id,
-            device_type=self.device_type,
+            device_type=data_type,
             dataset_id=self.dataset_id,
         )

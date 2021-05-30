@@ -9,13 +9,17 @@ class Main:
     def __init__(self):
         print("Starting data acquisition")
         self.publisher = Publisher()
-        sensors = {"SPECTRUM": SpectrumSensor, "HUM_TEMP": HumTempSensor}
-        self.sensor = sensors[self.publisher.device_type]()
+        self.sensors = {}
+        self.results = {}
+        self.sensor_factories = {"SPECTRUM": SpectrumSensor, "HUM_TEMP": HumTempSensor}
+
+        for data_type in self.publisher.enabled_sensors:
+            self.results[data_type] = []
+            self.sensors[data_type] = self.sensor_factories[data_type]()
 
         self.period_length = self.publisher.period_length
         self.batch_size = self.publisher.batch_size
         self.loops_executed = 0
-        self.results = []
         self.run()
 
     def run(self):
@@ -29,8 +33,9 @@ class Main:
     def get_data(self, t):
         # Execute current iteration
         start_time = time()
-        result = self.sensor.measure()
-        print(result)
+        for data_type in self.publisher.enabled_sensors:
+            result = self.sensors[data_type].measure()
+            self.results[data_type].append(result)
         end_time = time()
 
         if (end_time - start_time) * 1000 > self.period_length * 1000:
@@ -38,7 +43,6 @@ class Main:
             end_ms = self.period_length * 1000
             print(f"WARNING: measurement loop execution time ({start_ms}ms) exceeded period_length ({end_ms}ms)!")
 
-        self.results.append(result)
         self.loops_executed += 1
         if (self.loops_executed % self.batch_size) == 0:
             self.submit_data()
@@ -47,9 +51,10 @@ class Main:
         self.scheduler.enterabs(t + self.period_length, 1, self.get_data, (t + self.period_length,))
 
     def submit_data(self):
-        self.publisher.publish(self.results)
-        print(f"{len(self.results)} rows published")
-        self.results = []
+        for data_type in self.results:
+            self.publisher.publish(self.results[data_type], data_type)
+            print(f"{len(self.results[data_type])} rows published of data_type: {data_type}")
+            self.results[data_type] = []
 
 
 Main()

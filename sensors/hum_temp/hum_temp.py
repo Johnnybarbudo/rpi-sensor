@@ -9,4 +9,4 @@ class HumTempSensor:
         humidity = round(self.sensor.relative_humidity, 3)
         temperature = round(self.sensor.temperature, 3)
 
-        return humidity, temperature
+        return {"humidity": humidity, "temperature": temperature}
