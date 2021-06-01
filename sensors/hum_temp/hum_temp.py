@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sensors.hum_temp.sht31d import get_sensor
 
 
@@ -6,7 +7,10 @@ class HumTempSensor:
         self.sensor = get_sensor()
 
     def measure(self):
-        humidity = round(self.sensor.relative_humidity, 3)
-        temperature = round(self.sensor.temperature, 3)
+        row = {
+            "timestamp": datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+            "humidity": round(self.sensor.relative_humidity, 3),
+            "temperature": round(self.sensor.temperature, 3),
+        }
 
-        return {"humidity": humidity, "temperature": temperature}
+        return row

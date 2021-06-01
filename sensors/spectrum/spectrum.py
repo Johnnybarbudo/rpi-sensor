@@ -76,20 +76,22 @@ class SpectrumSensor:
                     "normal_tint_ms": CONST["normal_tint_ms"],
                 }
             ),
-            "raw_counts": {},
         }
+        raw_counts = {}
         for channel in CONST["relative_gains"]:
             raw_count = getattr(self.sensor, f"channel_{channel}")
             norm_count = self.normalize_count(raw_count, channel)
 
-            row["raw_counts"][channel] = raw_count
+            raw_counts[channel] = raw_count
             row[f"ch_{channel}_norm_count"] = round(norm_count)
+        row["raw_counts"] = json.dumps(raw_counts)
 
         # Get total normalized counts
         total_norm_count = 0
         for channel in CONST["relative_gains"]:
             total_norm_count += row[f"ch_{channel}_norm_count"]
         row["total_norm_count"] = total_norm_count
+        print("Total sensor count: ", total_norm_count)
 
         return row
 

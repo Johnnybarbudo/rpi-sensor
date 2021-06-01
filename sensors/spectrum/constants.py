@@ -39,4 +39,3 @@ def get_relative_photon_energies(channels):
 
 
 CONST["relative_photon_energies"] = get_relative_photon_energies(CONST["relative_gains"])
-print(CONST)
