@@ -1,3 +1,6 @@
+# Raiz Sensor Driver
+The code in this repository runs in a Raspberry Pi, collects and aggregates data, then logs it to a cloud database.
+
 ### Install the package
 
 ```
