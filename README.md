@@ -66,3 +66,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
     ```sh
     ssh localhost -p 10001 -l pi
     ```
+## Troubleshooting 
+
+1. SSH-Connection for cloning git repo fails ( Step 3 in Set up of the RPI): The ssh-keygen will ask for a file to store the Key and a PW. These inputs should be skiped by pressing Enter so the Key will be stored in the default file which is called by the cat command afterwards.
+2. 
