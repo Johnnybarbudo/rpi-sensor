@@ -22,7 +22,8 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 
 ### Connect to RPi
 
-`ssh pi@192.168.43.201` (change IP to the one you found above, only works on local network) or alternatively `ssh pi@raspberrypi` (when the SSH username is still on default) 
+1. `ssh pi@192.168.43.201` (change IP to the one you found above, only works on local network) or alternatively `ssh pi@raspberrypi` (when the SSH username is still on default) 
+2. The Password for the connection can be found in the Raiz Notion Page under the subsection: Raspberry Remote Access
 
 ### Set up RPi from scratch
 
