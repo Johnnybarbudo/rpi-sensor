@@ -22,8 +22,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 
 ### Connect to RPi
 
-`ssh pi@192.168.43.201` (change IP to the one you found above, only works on local network)
-`ssh pi@raspberrypi` (Alternative when the SSH username is still on default) 
+`ssh pi@192.168.43.201` (change IP to the one you found above, only works on local network) or alternatively `ssh pi@raspberrypi` (when the SSH username is still on default) 
 
 ### Set up RPi from scratch
 
