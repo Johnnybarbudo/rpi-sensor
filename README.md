@@ -42,7 +42,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
    pip3 install -r requirements.txt && \
    touch serviceaccount_pubsub.json
    ```
-4. Create a service account with 'Pub/Sub Publisher' role and add it to `serviceaccount_pubsub.json`
+4. Create a service account in GCP with 'Pub/Sub Publisher' role and add it to `serviceaccount_pubsub.json`
 5. Update values in `/home/pi/rpi-sensor/device_config.yaml` as needed
 6. `sudo raspi-config` Interface Options > Enable I2C Interface
 7. Install gcloud
