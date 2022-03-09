@@ -26,7 +26,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 
 ### Set up RPi from scratch
 
-1. Execute the commands below:
+1. Execute the commands below(leave Filename and PW at SSH-Keygen empty, just press Enter):
    ```sh
    sudo apt update -y && \
    sudo apt full-upgrade -y && \
