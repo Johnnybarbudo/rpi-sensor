@@ -70,4 +70,4 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 ## Troubleshooting 
 
 1. If SSH authentication for cloning git repo fails (Step 3 in Set up of the RPI): The ssh-keygen will ask for a file to store the key and password. These inputs should be skipped by pressing Enter so the key will be stored in the default file which is called by the `cat` command afterwards.
-2. 
+2. If initialization of gcloud with the command  ```gcloud init``` fails on the RPI (In step 7). The command can be replaced by ```gcloud init --console-only```. In that case a link will occur in the console which should be copied in the browser of your computer. Give back the authentication key to the RPI. 
