@@ -14,6 +14,8 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 ```
 ## Install tmux 
 Running the machine while disconnecting from the ssh 
+explain here the commands to run!
+
 ## Comissioning
 
 ### Find Raspberry Pi on local network
