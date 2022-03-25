@@ -12,7 +12,8 @@ python3 -m pip install -e .
 ```
 GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 ```
-
+## Install tmux 
+Running the machine while disconnecting from the ssh 
 ## Comissioning
 
 ### Find Raspberry Pi on local network
