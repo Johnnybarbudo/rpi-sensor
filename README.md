@@ -18,9 +18,9 @@ In case you want to run the remote RPI and disconnect from it after the intializ
 
 1. Connect to the RPI with the standard ssh procedure 
 2. If the RPI has no tmux installed, install it by using the command `sudo apt install tmux`
-3. start tmux by typing `tmux` into the shell
-4. start the process you want inside the started tmux session
-5. leave/detach the tmux session by typing `Ctrl+b` and then `d`. When you come back again and want to check the status of your process you can use `tmux attach` to attach to your tmux session.
+3. Start tmux by typing `tmux` into the shell
+4. Start the process you want inside the started tmux session
+5. Leave/detach the tmux session by typing `Ctrl+b` and then `d`. When you come back again and want to check the status of your process you can use `tmux attach` to attach to your tmux session.
 6. You can now safely log off from the remote RPI by tying `exit`. 
 
 ## Comissioning
