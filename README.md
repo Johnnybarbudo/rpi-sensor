@@ -12,6 +12,16 @@ python3 -m pip install -e .
 ```
 GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 ```
+## Using tmux 
+
+In case you want to run the remote RPI and disconnect from it after the intialization of the process, tmux should be used.
+
+1. Connect to the RPI with the standard ssh procedure 
+2. If the RPI has no tmux installed, install it by using the command `sudo apt install tmux`
+3. Start tmux by typing `tmux` into the shell
+4. Start the process you want inside the started tmux session
+5. Leave/detach the tmux session by typing `Ctrl+b` and then `d`. When you come back again and want to check the status of your process you can use `tmux attach` to attach to your tmux session.
+6. You can now safely log off from the remote RPI by tying `exit`. 
 
 ## Comissioning
 
@@ -22,11 +32,12 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
 
 ### Connect to RPi
 
-`ssh pi@192.168.43.201` (change IP to the one you found above, only works on local network) or alternatively `ssh pi@raspberrypi` (when the SSH username is still on default) 
+1. `ssh pi@192.168.43.201` (change IP to the one you found above, only works on local network) or alternatively `ssh pi@raspberrypi` (when the SSH username is still on default) 
+2. The Password for the connection can be found in the Raiz Notion Page under the subsection: Raspberry Remote Access
 
 ### Set up RPi from scratch
 
-1. Execute the commands below:
+1. Execute the commands below(leave Filename and PW at SSH-Keygen empty, just press Enter):
    ```sh
    sudo apt update -y && \
    sudo apt full-upgrade -y && \
@@ -42,7 +53,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
    pip3 install -r requirements.txt && \
    touch serviceaccount_pubsub.json
    ```
-4. Create a service account with 'Pub/Sub Publisher' role and add it to `serviceaccount_pubsub.json`
+4. Create a service account in GCP with 'Pub/Sub Publisher' role and add it to `serviceaccount_pubsub.json`
 5. Update values in `/home/pi/rpi-sensor/device_config.yaml` as needed
 6. `sudo raspi-config` Interface Options > Enable I2C Interface
 7. Install gcloud
@@ -66,3 +77,7 @@ GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json" python3 main.py
     ```sh
     ssh localhost -p 10001 -l pi
     ```
+## Troubleshooting 
+
+1. If SSH authentication for cloning git repo fails (Step 3 in Set up of the RPI): The ssh-keygen will ask for a file to store the key and password. These inputs should be skipped by pressing Enter so the key will be stored in the default file which is called by the `cat` command afterwards.
+2. If initialization of gcloud with the command  ```gcloud init``` fails on the RPI (In step 7). The command can be replaced by ```gcloud init --console-only```. In that case a link will occur in the console which should be copied in the browser of your computer. Give back the authentication key to the RPI. 
