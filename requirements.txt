@@ -1,5 +1,6 @@
 adafruit-circuitpython-as7341
-adafruit-circuitpython-sht31d
+adafruit-circuitpython-shtc3
+adafruit-circuitpython-ms8607
 pyyaml
 google-api-python-client
 google-cloud-pubsub

@@ -2,6 +2,7 @@ from sched import scheduler
 from time import time, sleep
 from sensors.spectrum.spectrum import SpectrumSensor
 from sensors.hum_temp.hum_temp import HumTempSensor
+from sensors.hum_temp_pres.hum_temp_pres import HumTempPresSensor
 from publisher import Publisher
 
 
@@ -11,7 +12,9 @@ class Main:
         self.publisher = Publisher()
         self.sensors = {}
         self.results = {}
-        self.sensor_factories = {"SPECTRUM": SpectrumSensor, "HUM_TEMP": HumTempSensor}
+        self.sensor_factories = {"SPECTRUM": SpectrumSensor,
+                                 "HUM_TEMP": HumTempSensor,
+                                 "HUM_TEMP_PRES": HumTempPresSensor}
 
         for data_type in self.publisher.enabled_sensors:
             self.results[data_type] = []
