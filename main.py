@@ -4,6 +4,7 @@ from sensors.spectrum.spectrum import SpectrumSensor
 from sensors.hum_temp.hum_temp import HumTempSensor
 from sensors.hum_temp_pres.hum_temp_pres import HumTempPresSensor
 from publisher import Publisher
+from statistics import mean
 
 
 class Main:
@@ -12,6 +13,7 @@ class Main:
         self.publisher = Publisher()
         self.sensors = {}
         self.results = {}
+        self.mean = {}
         self.sensor_factories = {"SPECTRUM": SpectrumSensor,
                                  "HUM_TEMP": HumTempSensor,
                                  "HUM_TEMP_PRES": HumTempPresSensor}
@@ -19,15 +21,17 @@ class Main:
         for data_type in self.publisher.enabled_sensors:
             self.results[data_type] = []
             self.sensors[data_type] = self.sensor_factories[data_type]()
+            
 
         self.period_length = self.publisher.period_length
-        self.batch_size = self.publisher.batch_size
+        self.submission_length = self.publisher.submission_length
         self.loops_executed = 0
         self.run()
 
     def run(self):
         try:
             self.scheduler = scheduler(time, sleep)
+            self.time = time()
             self.scheduler.enter(0, 1, self.get_data, (time(),))
             self.scheduler.run()
         except KeyboardInterrupt:
@@ -46,18 +50,22 @@ class Main:
             end_ms = self.period_length * 1000
             print(f"WARNING: measurement loop execution time ({start_ms}ms) exceeded period_length ({end_ms}ms)!")
 
-        self.loops_executed += 1
-        if (self.loops_executed % self.batch_size) == 0:
+        if (time()-self.time) >= self.submission_length:
+            # calculate average 
+            self.mean[data_type] = self.mean(self.results[data_type])
+            # submit the average 
+            
             self.submit_data()
-
         # Schedule next iteration self.period_length seconds later
         self.scheduler.enterabs(t + self.period_length, 1, self.get_data, (t + self.period_length,))
 
     def submit_data(self):
-        for data_type in self.results:
-            self.publisher.publish(self.results[data_type], data_type)
-            print(f"{len(self.results[data_type])} rows published of data_type: {data_type}")
+        for data_type in self.mean:
+            self.publisher.publish(self.mean[data_type], data_type)
+            print(f"{len(self.mean[data_type])} rows published of data_type: {data_type}")
             self.results[data_type] = []
+            self.mean[data_type] = []
+            self.time = ()
 
 
 Main()
