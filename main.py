@@ -14,14 +14,11 @@ class Main:
         self.sensors = {}
         self.results = {}
         self.mean = {}
-        self.sensor_factories = {"SPECTRUM": SpectrumSensor,
-                                 "HUM_TEMP": HumTempSensor,
-                                 "HUM_TEMP_PRES": HumTempPresSensor}
+        self.sensor_factories = {"SPECTRUM": SpectrumSensor, "HUM_TEMP": HumTempSensor, "HUM_TEMP_PRES": HumTempPresSensor}
 
         for data_type in self.publisher.enabled_sensors:
             self.results[data_type] = []
             self.sensors[data_type] = self.sensor_factories[data_type]()
-            
 
         self.period_length = self.publisher.period_length
         self.submission_length = self.publisher.submission_length
@@ -50,11 +47,11 @@ class Main:
             end_ms = self.period_length * 1000
             print(f"WARNING: measurement loop execution time ({start_ms}ms) exceeded period_length ({end_ms}ms)!")
 
-        if (time()-self.time) >= self.submission_length:
-            # calculate average 
+        if (time() - self.time) >= self.submission_length:
+            # calculate average
             self.mean[data_type] = self.mean(self.results[data_type])
-            # submit the average 
-            
+            # submit the average
+
             self.submit_data()
         # Schedule next iteration self.period_length seconds later
         self.scheduler.enterabs(t + self.period_length, 1, self.get_data, (t + self.period_length,))
