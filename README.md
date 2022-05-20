@@ -99,6 +99,7 @@ In case you want to run the remote RPI and disconnect from it after the intializ
     sudo apt-get update && sudo apt-get install google-cloud-sdk -y && \
     gcloud init
     ```
+    NOTE: if you get an error (`unrecognized arguments: --remote-bootstrap`) when executing the auth command on your laptop, upgrade your gcloud with `gcloud components update`
     On a Rpi Zero running on armv6 atchitecture, to avoid 'Illegal instruction' error caused by a GCP dependency (grpcio), reinstall grpcio from source:
     ```
     pip3 install --upgrade --no-binary :all: grpcio
