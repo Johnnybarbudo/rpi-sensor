@@ -16,6 +16,9 @@ python3 -m pip install -e .
 export GOOGLE_APPLICATION_CREDENTIALS="serviceaccount_pubsub.json"
 python3 main.py
 ```
+If you don't want to run the export command every time, you can add it to the bottom of `~/.bashrc`, so then it will be executed any time the Pi boots up.
+To make it pick up the change right away (without rebooting), you can execute `source ~/.bashrc`. 
+NOTE: if the bashrc file doesn't exist, you can just create it with `touch ~/.bashrc`.
 
 ## Using tmux
 
