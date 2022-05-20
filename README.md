@@ -76,7 +76,7 @@ In case you want to run the remote RPI and disconnect from it after the intializ
    ```
    pip3 install --upgrade --no-binary :all: grpcio
    ```
-   This might take a while. To avoid losing progress if the SSH session disconnects, install tmux (`apt install tmux), start the install, then press CMD+B+D Now you can quit the SSH session. If you log back in, you can run `tmux attach` to connect to the previous session.
+   This might take a while. To avoid losing progress if the SSH session disconnects, install tmux (`apt install tmux`), start the install, then press CMD+B+D Now you can quit the SSH session. If you log back in, you can run `tmux attach` to connect to the previous session.
 8. To make sure SSH keys are picked up, execute:
    ```sh
    eval `ssh-agent`
