@@ -111,16 +111,18 @@ In case you want to run the remote RPI and disconnect from it after the intializ
     eval `ssh-agent`
     ssh-add
     ```
-13. Add Jumpbox public key to authorized_keys on RPi:
-
-    On Jumpbox:
-    ```sh
-    cat ~/.ssh/id_rsa.pub
-    ```
-    Copy output, then paste below. On Raspberry Pi:
-    ```sh
-    nano ~/.ssh/authorized_keys
-    ```
+13. If you followed the instructions when etching the SD card, the SSH keys of your local computer and the jumpbox should be already added to `authorized_keys`. If you need to add another key, or you didn't configure it properly, you can add it by:
+    1. Add Jumpbox public key to `authorized_keys` on RPi:
+        On Jumpbox:
+        ```sh
+        cat ~/.ssh/id_rsa.pub
+        ```
+        Then copy output.
+    2. On Raspberry Pi:
+        ```sh
+        nano ~/.ssh/authorized_keys
+        ```
+        And paste the key from above to a new line.
 14. Add following line to crontab (open with `crontab -e`):
     ```sh
     @reboot source /home/pi/rpi-sensor/startup.sh
