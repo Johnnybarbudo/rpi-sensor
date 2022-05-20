@@ -68,12 +68,15 @@ In case you want to run the remote RPI and disconnect from it after the intializ
    sudo apt full-upgrade -y && \
    sudo apt install git python3-pip autossh -y
    ```
-6. Create an SSH key pair, then add public key to GitHub SSH keys and GCP Jumpbox Instance
+6. Create an SSH key pair (keep everything on default, just keep pressing Enter)
    ```
    ssh-keygen
    cat ~/.ssh/id_rsa.pub
    ```
-7. Clone repo and install dependencies:
+7. Add public key to 
+    1. GitHub SSH keys: Settings > SSH and GPG keys > New SSH key
+    2. GCP Jumpbox Instance: GCP Console > Compute Engine > Metadata > SSH Keys
+8. Clone repo and install dependencies:
    ```sh
    git clone git@github.com:raiz-lisbon/rpi-sensor.git && \
    cd rpi-sensor && \
