@@ -127,11 +127,19 @@ In case you want to run the remote RPI and disconnect from it after the intializ
     ```sh
     @reboot source /home/pi/rpi-sensor/startup.sh
     ```
-15. Connect to jumpbox:
+15. Test if you can connect to jumpbox (then quit the session by `exit`):
     ```sh
-    ssh simon@130.211.204.106
+    ssh 104.199.69.122
     ```
-16. From Jumpbox, connect to RPi:
+16. Open a reverse tunnel to the jumpbox that will forward SSH connections initiated on one of the jumphost's specific ports to the RPi:
+    ```
+    ssh -fN -R 10001:localhost:22 104.199.69.122
+    ```
+    -f run in background
+    -N don't execute remote command (just for forwarding)
+    -R specifies that SSH connections on port 10001 of localhost should be forwarded to port 22 (default SSH port) on the RPi
+    104.199.69.122 IP of the jumphost. Might change in the future (or we'll switch to a DNS name).
+18. After the reverse port forwarding is open, you will be able to conenct to the Pi from the jumpbox:
     ```sh
     ssh localhost -p 10001 -l pi
     ```
