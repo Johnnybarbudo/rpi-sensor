@@ -83,7 +83,12 @@ In case you want to run the remote RPI and disconnect from it after the intializ
    pip3 install -r requirements.txt && \
    touch serviceaccount_pubsub.json
    ```
-8. Create a service account in GCP with 'Pub/Sub Publisher' role and add it to `serviceaccount_pubsub.json`
+8. Find the `datalogger-pub@environment-data.iam.gserviceaccount.com` service account in GCP Console > IAM & Admin > Service Accounts (or create it if it doesn't exist with 'Pub/Sub Publisher' role)
+    1. Click on it, go to the 'KEYS' tab
+    2. Add Key > Create New Key > JSON
+    3. Open the downloaded JSON file and copy its contents
+    4. On the Pi, run `nano serviceaccount_pubsub.json`, paste the contents there and save the file.
+`serviceaccount_pubsub.json`
 9. Update values in `/home/pi/rpi-sensor/device_config.yaml` as needed
 10. `sudo raspi-config` Interface Options > Enable I2C Interface
 11. Install gcloud:
