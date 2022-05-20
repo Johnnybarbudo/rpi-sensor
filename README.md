@@ -2,6 +2,9 @@
 
 The code in this repository runs in a Raspberry Pi, collects and aggregates data, then logs it to a cloud database.
 
+### Set up WiFi connection on the Pi
+https://raspberrypi.stackexchange.com/questions/11631/how-to-setup-multiple-wifi-networks
+
 ### Install the package
 
 For the imports to work properly
