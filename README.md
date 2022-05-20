@@ -46,28 +46,44 @@ In case you want to run the remote RPI and disconnect from it after the intializ
 
 ## Set up RPi from scratch for deployment
 
-1. Execute the commands below(leave Filename and PW at SSH-Keygen empty, just press Enter):
+1. Get a MicroSD card and format it
+2. Download & Install [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
+3. Open the imager, then in the settings (sprocket on bottom left):
+    1. Set hostname to `raspberrypi`
+    2. Enable SSH with public keys. You can add multiple keys separated by `\n`. Add your local key (get it by `cat ~/.ssh/id_rsa.pub`, or change the name of the key if you named it different), and add the pubkey of the jumphost:
+        
+        ```jsx
+        ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDeoS0MVPlUPqrCvH2j0o346mU3Qz+myf4Pd9EDGBtTWIp6hDGRnlmOG5iSdBtp/dMq9HOrWuN9DASFeS1vqDX8HJGMBRdMGY1cBWCp+sHeAC8jucZWEZdk88iJOp2qO4DhdFs8D38xnC2JIHWprglGjwNVlzJPP0y9D+kMalumgMS/356Y+d+DTNW5G0rLqr68E4aZhwvNnUoB375L+zbx6R242JUShPFh/fc5hpVAmkfzwap8dpP7Xt4b1KT8E303+w1+pMUuzxyKCw+U4/W4FtdwzEtKXBqYHXKNq9lwxVVBPc0ZZmOrh0Mex96XNNB+wZPTmCHKkHzz7+LlTdmbj3bBRV7knJ8nRmpTb7TjefX34zPP8XGXgR4vN7Y++bFXpNlOF8rWOJXh1Ke8QQnMB7WU3Oajihmz5ZzTvYjQtMxIAUJAC14h668lc38qk7xNF3/RLbuicdM/4BPfSwzgPuNEA9irbt6cFubXozy6i2dKZx0saBEl8x7CHQIBQq0= simon@raiz-jumpbox
+        ```
+        
+    3. Configure wireless LAN: add SSID and password
+    4. Set locale settings
+    5. Click WRITE
+    6. Once ready, insert the SD card to the RPi and connect it to power
+4. SSH into it with `ssh pi@raspberrypi.local` (this works because the hostname was configured before etching the SD card)
+
+5. Execute the commands below(leave Filename and PW at SSH-Keygen empty, just press Enter):
    ```sh
    sudo apt update -y && \
    sudo apt full-upgrade -y && \
    sudo apt install git python3-pip autossh -y
    ```
-2. Create an SSH key pair, then add public key to GitHub SSH keys and GCP Jumpbox Instance
+6. Create an SSH key pair, then add public key to GitHub SSH keys and GCP Jumpbox Instance
    ```
    ssh-keygen
    cat ~/.ssh/id_rsa.pub
    ```
-3. Clone repo and install dependencies:
+7. Clone repo and install dependencies:
    ```sh
    git clone git@github.com:raiz-lisbon/rpi-sensor.git && \
    cd rpi-sensor && \
    pip3 install -r requirements.txt && \
    touch serviceaccount_pubsub.json
    ```
-4. Create a service account in GCP with 'Pub/Sub Publisher' role and add it to `serviceaccount_pubsub.json`
-5. Update values in `/home/pi/rpi-sensor/device_config.yaml` as needed
-6. `sudo raspi-config` Interface Options > Enable I2C Interface
-7. Install gcloud:
+8. Create a service account in GCP with 'Pub/Sub Publisher' role and add it to `serviceaccount_pubsub.json`
+9. Update values in `/home/pi/rpi-sensor/device_config.yaml` as needed
+10. `sudo raspi-config` Interface Options > Enable I2C Interface
+11. Install gcloud:
    ```sh
    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
    sudo apt-get install apt-transport-https ca-certificates gnupg -y && \
@@ -80,12 +96,12 @@ In case you want to run the remote RPI and disconnect from it after the intializ
    pip3 install --upgrade --no-binary :all: grpcio
    ```
    This might take a while. To avoid losing progress if the SSH session disconnects, install tmux (`apt install tmux`), start the install, then press CMD+B+D Now you can quit the SSH session. If you log back in, you can run `tmux attach` to connect to the previous session.
-8. To make sure SSH keys are picked up, execute:
+12. To make sure SSH keys are picked up, execute:
    ```sh
    eval `ssh-agent`
    ssh-add
    ```
-9. Add Jumpbox public key to authorized_keys on RPi:
+13. Add Jumpbox public key to authorized_keys on RPi:
    On Jumpbox:
    ```sh
    cat ~/.ssh/id_rsa.pub
@@ -94,15 +110,15 @@ In case you want to run the remote RPI and disconnect from it after the intializ
    ```sh
    nano ~/.ssh/authorized_keys
    ```
-10. Add following line to crontab (open with `crontab -e`):
+14. Add following line to crontab (open with `crontab -e`):
     ```sh
     @reboot source /home/pi/rpi-sensor/startup.sh
     ```
-11. Connect to jumpbox:
+15. Connect to jumpbox:
     ```sh
     ssh simon@130.211.204.106
     ```
-12. From Jumpbox, connect to RPi:
+16. From Jumpbox, connect to RPi:
     ```sh
     ssh localhost -p 10001 -l pi
     ```
