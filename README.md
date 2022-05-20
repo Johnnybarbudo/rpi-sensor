@@ -92,32 +92,33 @@ In case you want to run the remote RPI and disconnect from it after the intializ
 9. Update values in `/home/pi/rpi-sensor/device_config.yaml` as needed
 10. `sudo raspi-config` Interface Options > Enable I2C Interface
 11. Install gcloud:
-        ```sh
-        echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-        sudo apt-get install apt-transport-https ca-certificates gnupg -y && \
-        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
-        sudo apt-get update && sudo apt-get install google-cloud-sdk -y && \
-        gcloud init
-        ```
-        On a Rpi Zero running on armv6 atchitecture, to avoid 'Illegal instruction' error caused by a GCP dependency (grpcio), reinstall grpcio from source:
-        ```
-        pip3 install --upgrade --no-binary :all: grpcio
-        ```
-        This might take a while. To avoid losing progress if the SSH session disconnects, install tmux (`apt install tmux`), start the install, then press CMD+B+D Now you can quit the SSH session. If you log back in, you can run `tmux attach` to connect to the previous session.
+    ```sh
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    sudo apt-get install apt-transport-https ca-certificates gnupg -y && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
+    sudo apt-get update && sudo apt-get install google-cloud-sdk -y && \
+    gcloud init
+    ```
+    On a Rpi Zero running on armv6 atchitecture, to avoid 'Illegal instruction' error caused by a GCP dependency (grpcio), reinstall grpcio from source:
+    ```
+    pip3 install --upgrade --no-binary :all: grpcio
+    ```
+    This might take a while. To avoid losing progress if the SSH session disconnects, install tmux (`apt install tmux`), start the install, then press CMD+B+D Now you can quit the SSH session. If you log back in, you can run `tmux attach` to connect to the previous session.
 12. To make sure SSH keys are picked up, execute:
-        ```sh
-        eval `ssh-agent`
-        ssh-add
-        ```
+    ```sh
+    eval `ssh-agent`
+    ssh-add
+    ```
 13. Add Jumpbox public key to authorized_keys on RPi:
-        On Jumpbox:
-        ```sh
-        cat ~/.ssh/id_rsa.pub
-        ```
-        Copy output, then paste below. On Raspberry Pi:
-        ```sh
-        nano ~/.ssh/authorized_keys
-        ```
+
+    On Jumpbox:
+    ```sh
+    cat ~/.ssh/id_rsa.pub
+    ```
+    Copy output, then paste below. On Raspberry Pi:
+    ```sh
+    nano ~/.ssh/authorized_keys
+    ```
 14. Add following line to crontab (open with `crontab -e`):
     ```sh
     @reboot source /home/pi/rpi-sensor/startup.sh
