@@ -4,6 +4,7 @@ from sensors.spectrum.spectrum import SpectrumSensor
 from sensors.hum_temp.hum_temp import HumTempSensor
 from sensors.hum_temp_pres.hum_temp_pres import HumTempPresSensor
 from publisher import Publisher
+from statistics import mean
 
 
 class Main:
@@ -12,16 +13,14 @@ class Main:
         self.publisher = Publisher()
         self.sensors = {}
         self.results = {}
-        self.sensor_factories = {"SPECTRUM": SpectrumSensor,
-                                 "HUM_TEMP": HumTempSensor,
-                                 "HUM_TEMP_PRES": HumTempPresSensor}
+        self.sensor_factories = {"SPECTRUM": SpectrumSensor, "HUM_TEMP": HumTempSensor, "HUM_TEMP_PRES": HumTempPresSensor}
 
         for data_type in self.publisher.enabled_sensors:
             self.results[data_type] = []
             self.sensors[data_type] = self.sensor_factories[data_type]()
 
-        self.period_length = self.publisher.period_length
-        self.batch_size = self.publisher.batch_size
+        self.measurement_cycle_length = self.publisher.measurement_cycle_length
+        self.submit_after_cycles = self.publisher.submit_after_cycles
         self.loops_executed = 0
         self.run()
 
@@ -34,29 +33,37 @@ class Main:
             print(" Exiting Scheduler loop")
 
     def get_data(self, t):
-        # Execute current iteration
+        # Schedule next iteration self.measurement_cycle_length seconds later
+        # Start with this, so the time it takes to take measurements and submit them won't be added to the delay
+        self.scheduler.enterabs(t + self.measurement_cycle_length, 1, self.get_data, (t + self.measurement_cycle_length,))
+
+        # Take measurements on all sensors
         start_time = time()
         for data_type in self.publisher.enabled_sensors:
             result = self.sensors[data_type].measure()
             self.results[data_type].append(result)
         end_time = time()
 
-        if (end_time - start_time) * 1000 > self.period_length * 1000:
+        # Print a warning if the time it took to take measurements is longer than the cycle time
+        if (end_time - start_time) * 1000 > self.measurement_cycle_length * 1000:
             start_ms = round((end_time - start_time) * 1000, 2)
-            end_ms = self.period_length * 1000
-            print(f"WARNING: measurement loop execution time ({start_ms}ms) exceeded period_length ({end_ms}ms)!")
+            end_ms = self.measurement_cycle_length * 1000
+            print(f"WARNING: measurement loop execution time ({start_ms}ms) exceeded measurement_cycle_length ({end_ms}ms)!")
 
-        self.loops_executed += 1
-        if (self.loops_executed % self.batch_size) == 0:
+        # Check if the accumulated measurements exceed the threshold, and submit them if they do
+        # Just use the last result type (self.results[data_type]), but all should have the same length
+        if len(self.results[data_type]):
             self.submit_data()
 
-        # Schedule next iteration self.period_length seconds later
-        self.scheduler.enterabs(t + self.period_length, 1, self.get_data, (t + self.period_length,))
-
     def submit_data(self):
+        # Submit measurements for each data tye
         for data_type in self.results:
-            self.publisher.publish(self.results[data_type], data_type)
-            print(f"{len(self.results[data_type])} rows published of data_type: {data_type}")
+            # Calculate mean of the accumulated data points
+            mean_of_type = mean(self.results[data_type])
+            # Submit the mean
+            self.publisher.publish(mean_of_type, data_type)
+            print(f"'{data_type}' published.")
+            # Reset accumulator
             self.results[data_type] = []
 
 
