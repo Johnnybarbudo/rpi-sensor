@@ -150,6 +150,11 @@ In case you want to run the remote RPI and disconnect from it after the intializ
 2. If initialization of gcloud with the command `gcloud init` fails on the RPI (In step 7). The command can be replaced by `gcloud init --console-only`. In that case a link will occur in the console which should be copied in the browser of your computer. Give back the authentication key to the RPI.
 3. If you want to connect to another RPI, the Host key verification can fail. In that case the host key might have a conflict. For removing the old host key use `ssh-keygen -R raspberrypi.local` or `ssh-keygen -R <ip-address>`. Try to connect again.
 4. How to create a local SSH-key: `ssh-keygen` and press enter without writing anything until the process is finished. 
+5. If you get an `Permission denied (publickey).` error when trying to set up the port forwarding, it might mean that the jumphost's key is not added to the `authorized_keys` file. You can fix that by the command below:
+    ```
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+    ```
+6. If you get an error `Warning: remote port forwarding failed for listen port 10001`, it probably means that the specified port is already used by another Pi. Try using a different port.
 ### Create OS Image
 
 1. Insert the set up MicroSD to the computer, then find its mount path:
