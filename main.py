@@ -76,7 +76,7 @@ class Main:
                 result[data_type] = np.mean(self.results[data_type], axis=0)
             # Submit the mean
             print("result", result)
-            self.publisher.publish(result, data_type)
+            self.publisher.publish([result], data_type)
             print(f"'{data_type}' published.")
             # Reset accumulator
             self.results[data_type] = []
