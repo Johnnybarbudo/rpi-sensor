@@ -57,27 +57,24 @@ class Main:
 
     def submit_data(self):
         # Submit measurements for each data tye
-        print(self.results)
-        # for data_type in self.results:
-        #     # Calculate mean of the accumulated data points
-        #     if data_type == "SPECTRUM":
-        #        bands = root["SPECTRUM"][0].keys()
-        #        values_per_bands = {}
-        #        for band in bands:
-        #            values_per_bands[band] = x[band] for x in root["SPECTRUM"]
+        for data_type in self.results:
+            # Calculate mean of the accumulated data points
+            result = {}
+            if data_type == "SPECTRUM":
+                bands = self.results["SPECTRUM"][0].keys()
+                values_per_bands = {}
+                for band in bands:
+                    values_per_bands[band] = [x[band] for x in self.results["SPECTRUM"]]
 
-        #        means_per_band = {}
-        #        for band in values_per_bands:
-        #            means_per_band[band] = np.array(values_per_bands[band]).mean(axis=0)
-        #         mean_of_type[data_type] = np.array(values_per_band)
-        #     else:
-        #         mean_of_type[data_type] = numpy.mean(self.results[data_type], axis=0)
-        #     # Submit the mean
-        #     self.publisher.publish(mean_of_type, data_type)
-        #     print(f"'{data_type}' published.")
-        #     # Reset accumulator
-        #     self.results[data_type] = []
+                for band in values_per_bands:
+                    result[band] = np.array(values_per_bands[band]).mean(axis=0)
+            else:
+                result[data_type] = np.mean(self.results[data_type], axis=0)
+            # Submit the mean
+            self.publisher.publish(result, data_type)
+            print(f"'{data_type}' published.")
+            # Reset accumulator
+            self.results[data_type] = []
 
 
 Main()
-
