@@ -60,18 +60,16 @@ class Main:
         # Submit measurements for each data tye
         for data_type in self.results:
             # Calculate mean of the accumulated data points
-            result = {"timestamp": datetime.now()}
-            print(self.results)
-            if data_type == "SPECTRUM":
-                bands = self.results["SPECTRUM"][0].keys()
-                values_per_bands = {}
-                for band in bands:
-                    values_per_bands[band] = [x[band] for x in self.results["SPECTRUM"]]
+            result = {"timestamp": datetime.now().isoformat()}
 
-                for band in values_per_bands:
-                    result[band] = np.array(values_per_bands[band]).mean(axis=0)
-            else:
-                result[data_type] = np.mean(self.results[data_type], axis=0)
+            channels = self.results[data_type][0].keys()
+            values_per_bands = {}
+            for channel in channels:
+                values_per_bands[channel] = [x[channel] for x in self.results[data_type]]
+
+            for channel in values_per_bands:
+                result[channel] = np.array(values_per_bands[channel]).mean(axis=0)
+
             # Submit the mean
             print("result", result)
             self.publisher.publish([result], data_type)
