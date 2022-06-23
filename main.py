@@ -61,6 +61,10 @@ class Main:
             # Calculate mean of the accumulated data points
             result = {}
             if data_type == "SPECTRUM":
+                print(1, self.results)
+                print(2, self.results["SPECTRUM"])
+                print(3, self.results["SPECTRUM"][0])
+                print(4, self.results["SPECTRUM"][0].keys())
                 bands = self.results["SPECTRUM"][0].keys()
                 values_per_bands = {}
                 for band in bands:
@@ -71,6 +75,7 @@ class Main:
             else:
                 result[data_type] = np.mean(self.results[data_type], axis=0)
             # Submit the mean
+            print("result", result)
             self.publisher.publish(result, data_type)
             print(f"'{data_type}' published.")
             # Reset accumulator
