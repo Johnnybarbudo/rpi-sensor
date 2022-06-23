@@ -1,8 +1,8 @@
 project_id: environment-data
 topic_id: datalogger
 dataset_id: farm_one
-device_id: RPI_0003
-enabled_sensors: ['SPECTRUM', 'HUM_TEMP', 'HUM_TEMP_PRES']
-measurement_cycle_length: 2 # measurements interval
-submit_after_cycles: 30 # submission interval (numer of data points) of data -> mean is calculated for this interval
+device_id: RPI_0005
+enabled_sensors: ['SPECTRUM'] #, 'HUM_TEMP', 'HUM_TEMP_PRES']
+measurement_cycle_length: 3 # measurements interval
+submit_after_cycles: 5 # submission interval (numer of data points) of data -> mean is calculated for this interval
 batch_size: 10

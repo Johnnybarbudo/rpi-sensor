@@ -4,7 +4,7 @@ from sensors.spectrum.spectrum import SpectrumSensor
 from sensors.hum_temp.hum_temp import HumTempSensor
 from sensors.hum_temp_pres.hum_temp_pres import HumTempPresSensor
 from publisher import Publisher
-import numpy as np
+import numpy
 
 
 class Main:
@@ -60,18 +60,15 @@ class Main:
         print(self.results)
         for data_type in self.results:
             # Calculate mean of the accumulated data points
-            if data_type == "SPECTRUM":
-               bands = root["SPECTRUM"][0].keys()
-               values_per_bands = {}
-               for band in bands:
-                   values_per_bands[band] = x[band] for x in root["SPECTRUM"]
-
-               means_per_band = {}
-               for band in values_per_bands:
-                   means_per_band[band] = np.array(values_per_bands[band]).mean(axis=0)
-            mean_of_type[data_type] = np.array(values_per_band)
-            else:
-            mean_of_type[data_type] = numpy.mean(self.results[data_type], axis=0)
+            #mean_of_type[data_type] = numpy.mean(self.results[data_type], axis=0)
+            list_of_band_415 = [x["ch_415nm_norm_count"] for x in root["SPECTRUM"]]
+            bands = root["SPECTRUM"][0].keys()
+            values_per_bands = {}
+            for band in bands:
+            values_per_bands[band] = x[band] for x in root["SPECTRUM"]]
+            means_per_band = {}
+            for band in values_per_bands:
+            means_per_band[band] = np.array(values_per_bands[band]).mean()
             # Submit the mean
             self.publisher.publish(mean_of_type, data_type)
             print(f"'{data_type}' published.")

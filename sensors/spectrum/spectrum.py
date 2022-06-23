@@ -65,17 +65,17 @@ class SpectrumSensor:
         self.tune_gain()
 
         row = {
-            "timestamp": datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
-            "sensor_config": json.dumps(
-                {
-                    "gain": Gain.string[self.sensor.gain],
-                    "astep": self.sensor.astep,
-                    "atime": self.sensor.atime,
-                    "tint": round(self.integration_time, 3),
-                    "normal_gain": CONST["normal_gain"],
-                    "normal_tint_ms": CONST["normal_tint_ms"],
-                }
-            ),
+           # "timestamp": datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+           # "sensor_config": json.dumps(
+               # {
+                   # "gain": Gain.string[self.sensor.gain],
+                   # "astep": self.sensor.astep,
+                   # "atime": self.sensor.atime,
+                   # "tint": round(self.integration_time, 3),
+                   # "normal_gain": CONST["normal_gain"],
+                   # "normal_tint_ms": CONST["normal_tint_ms"],
+               # }
+           # ),
         }
         raw_counts = {}
         for channel in CONST["relative_gains"]:
@@ -84,7 +84,7 @@ class SpectrumSensor:
 
             raw_counts[channel] = raw_count
             row[f"ch_{channel}_norm_count"] = round(norm_count)
-        row["raw_counts"] = json.dumps(raw_counts)
+        #row["raw_counts"] = json.dumps(raw_counts)
 
         # Get total normalized counts
         total_norm_count = 0
