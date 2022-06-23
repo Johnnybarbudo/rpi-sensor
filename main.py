@@ -1,10 +1,11 @@
+import numpy as np
 from sched import scheduler
 from time import time, sleep
+from datetime import datetime
 from sensors.spectrum.spectrum import SpectrumSensor
 from sensors.hum_temp.hum_temp import HumTempSensor
 from sensors.hum_temp_pres.hum_temp_pres import HumTempPresSensor
 from publisher import Publisher
-import numpy as np
 
 
 class Main:
@@ -59,12 +60,9 @@ class Main:
         # Submit measurements for each data tye
         for data_type in self.results:
             # Calculate mean of the accumulated data points
-            result = {}
+            result = {"timestamp": datetime.now()}
+            print(self.results)
             if data_type == "SPECTRUM":
-                print(1, self.results)
-                print(2, self.results["SPECTRUM"])
-                print(3, self.results["SPECTRUM"][0])
-                print(4, self.results["SPECTRUM"][0].keys())
                 bands = self.results["SPECTRUM"][0].keys()
                 values_per_bands = {}
                 for band in bands:
