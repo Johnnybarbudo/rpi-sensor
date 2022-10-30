@@ -41,6 +41,6 @@ class Publisher:
         point = Point(data_type).tag("farm_id", self.dataset_id).tag("device_id", self.device_id)
 
         for key in data[0]:
-            point = point.field(key, round(data[0][key], 3))
+            point = point.field(key, round(float(data[0][key]), 3))
 
         write_api.write(bucket=bucket, org="simon@raiz.farm", record=point)
