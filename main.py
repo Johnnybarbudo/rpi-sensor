@@ -68,9 +68,9 @@ class Main:
                 values_per_bands[channel] = [x[channel] for x in self.results[data_type]]
 
             for channel in values_per_bands:
-                result[channel] = round(np.array(values_per_bands[channel]).mean(axis=0),2)
+                result[channel] = round(np.array(values_per_bands[channel]).mean(axis=0), 3)
+
             # Submit the mean
-            #print("result", result)
             self.publisher.publish([result], data_type)
             print(f"'{data_type}' published.")
             # Reset accumulator
