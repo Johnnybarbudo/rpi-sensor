@@ -12,7 +12,7 @@ org = "simon@raiz.farm"
 url = "https://europe-west1-1.gcp.cloud2.influxdata.com"
 bucket = "farm-1-lisbon"
 
-client = InfluxDBClient(url=url, token=token, org=org)
+client = InfluxDBClient(url=url, token=token, org=org, timeout=30000)
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
 
