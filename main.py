@@ -76,5 +76,6 @@ class Main:
             # Reset accumulator
             self.results[data_type] = []
 
-if __name__ == '__main__':
-	Main()
+
+if __name__ == "__main__":
+    Main()

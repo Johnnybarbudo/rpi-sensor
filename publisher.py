@@ -29,16 +29,31 @@ class Publisher:
                 setattr(self, config_key, config_values[config_key])
 
     def publish(self, data, data_type):
-        data_to_publish = json.dumps(data).encode("utf-8")
-        self.publisher.publish(
-            self.topic_path,
-            data_to_publish,
-            device_id=self.device_id,
-            device_type=data_type,
-            dataset_id=self.dataset_id,
-        )
+        # data_to_publish = json.dumps(data).encode("utf-8")
+        # self.publisher.publish(
+        #     self.topic_path,
+        #     data_to_publish,
+        #     device_id=self.device_id,
+        #     device_type=data_type,
+        #     dataset_id=self.dataset_id,
+        # )
 
-        point = Point(data_type).tag("farm_id", self.dataset_id).tag("device_id", self.device_id)
+        sensor_type = None
+        measurement_type = None
+        if data_type == "SPECTRUM":
+            sensor_type = "AS7341"
+            measurement_type = "LIGHT"
+        elif data_type == "HUM_TEMP":
+            sensor_type = "SHTC3"
+            measurement_type = "AIR"
+        elif data_type == "HUM_TEMP_PRES":
+            sensor_type = "MS8607"
+            measurement_type = "AIR"
+
+        if sensor_type is None or measurement_type is None:
+            raise Exception("measurement type or sensor type not found")
+
+        point = Point(measurement_type).tag("farm_id", self.dataset_id).tag("logger_device_id", self.device_id).tag("sensor_type", sensor_type)
 
         for key in data[0]:
             if key == "timestamp":
