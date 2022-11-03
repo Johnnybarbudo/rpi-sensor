@@ -10,7 +10,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 token = os.environ.get("INFLUXDB_TOKEN")
 org = "simon@raiz.farm"
 url = "https://europe-west1-1.gcp.cloud2.influxdata.com"
-bucket = "farm-1-lisbon"
+bucket = "sensor-data"
 
 client = InfluxDBClient(url=url, token=token, org=org, timeout=10000, debug=True)
 write_api = client.write_api(write_options=SYNCHRONOUS)
