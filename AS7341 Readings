@@ -1,0 +1,119 @@
+## THIS SCRIPT TAKES READINGS (COUNTS) FROM A LIGHT SENSOR (AS7341) EVERY [X=5s], CALCULATES AVERAGES EVERY [Y=120s] AND CONVERTS THEM TO PPFD. 
+## SAVES THE ACCUMULATED SUM OF READINGS IN A CSV FILE AND AT THE END OF THE DAY (WHEN PPFD < 10 [micromol m-2 s-1] AND CURRENT TIME IS PAST SUNSET TIME) 
+## ANOTHER DEPENDENT PROCESS (LED Control.py) IS STARTED. THE DATA IS CONTANTLY SENT TO A GOOGLE CLOUD.
+
+import time
+import csv
+import board
+import adafruit_as7341
+import numpy as np
+from google.cloud import pubsub_v1
+import os
+import subprocess
+import ephem
+import pytz
+from datetime import date, datetime, timedelta
+
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/pi/Cloud'
+# Create a publisher client
+publisher = pubsub_v1.PublisherClient()
+project_id = 'datalogger'
+topic_name = 'projects/environment-data/topics/datalogger'
+
+# Initialize the AS7341 sensor
+i2c = board.I2C()
+sensor = adafruit_as7341.AS7341(i2c)
+
+# Set the location for which you want to calculate sunrise and sunset
+latitude = '38.7338'  # Latitude of Beato, Lisbon
+longitude = '-9.1054'  # Longitude of Beato, Lisbon
+# Create a PyEphem observer object
+observer = ephem.Observer()
+observer.lat = latitude
+observer.lon = longitude
+# Set the date to today
+today = date.today()
+observer.date = today.strftime('%Y/%m/%d')
+
+# Calculate sunrise and sunset times (in UTC) and then local times
+sunrise_utc = observer.previous_rising(ephem.Sun()).datetime() 
+sunset_utc = observer.next_setting(ephem.Sun()).datetime()
+local_timezone = pytz.timezone('Europe/Lisbon')  # Adjust to the desired timezone
+sunrise_local = sunrise_utc.astimezone(local_timezone)
+sunset_local = sunset_utc.astimezone(local_timezone)
+print(sunset_local)
+
+# Define the channel names
+channel_names = ['415nm', '445nm', '480nm', '515nm', '555nm', '590nm', '630nm', '680nm', 'clear']
+
+# Define the conversion matrix [b] from sensor counts to PPFD
+b = np.array([[0.0326119680559049], [-0.0215526943167849], [0.0205996951547832], [-0.0273354958043095],
+              [0.0260108006241511], [-0.00918756282095209], [8.17347418224211e-05], [0.00105726945111030],
+              [-0.000102042235789854]])
+
+print("Start of the Natural Light Readings")
+
+# Open a CSV file for writing
+with open('measurements.csv', 'a', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['Time', 'Result'])
+
+    X = 5 # Time between sensor readings [s]
+    Y = 120 # Timespan to calculate averages [s]
+    Z = 10 # Trigger light intensity for night [micromol m-2 s-1]
+    
+    led_start_time = None
+    led_process = None
+    last_led_process_date = None
+    
+    # Loop to take measurements every X seconds
+    counter = 0
+    measurements_sum = np.zeros((9, 1))
+    results_sum = 0
+    
+    while True:
+        timestamp = time.time()
+        
+        # Take measurements 
+        measurements = np.array([sensor.__getattribute__('channel_' + name.lower()) for name in channel_names]).reshape((9, 1))
+        measurements_sum += measurements # Add the measurements to the sum
+        
+        counter += 1 # Increment the counter
+
+        # Check if Y/X measurements have been taken
+        if counter == Y/X:
+            # Calculate the average of the 30 measurements for the 120 [60X] seconds
+            averages = measurements_sum / (Y/X)
+
+            # Multiply the average by the conversion matrix and by the amount of seconds it took (Y) (micromol m-2 [Y]s-1)
+            result = np.round((np.dot(b.T, averages))*Y, 0)
+            print(result)
+            
+            #SENDING TO GOOGLE CLOUD
+            topic_path = publisher.topic_path('datalogger', 'projects/environment-data/topics/datalogger')
+            publisher.publish('projects/environment-data/topics/datalogger', str(result[0][0]).encode())
+            
+            # Write the time and result
+            writer.writerow([time.strftime('%Y-%m-%d %H:%M:%S'), result[0][0]])
+            csvfile.flush()
+            # Add the result to the running sum
+            results_sum += result[0][0]
+            print(results_sum)
+            writer.writerow(["DLI =", results_sum])
+            csvfile.flush()
+            
+            # Check if the result is below the nighttime threshold and if it's past sunset time
+            if result[0][0] < Z * Y and datetime.now().astimezone(local_timezone) > sunset_local:
+            # Check if the LED process has already been started for the current day
+                if last_led_process_date != today:
+                    # Start the LED Control subprocess
+                    led_process = subprocess.Popen(['python', 'LED Control.py'])
+                    led_start_time = datetime.now()
+                    last_led_process_date = today
+
+            # Reset the counter and measurements sum
+            counter = 0
+            measurements_sum = np.zeros((9, 1))                         
+        
+        # Wait for X seconds before taking the next measurement
+        time.sleep(X)
