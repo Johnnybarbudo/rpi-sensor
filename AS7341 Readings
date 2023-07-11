@@ -46,8 +46,8 @@ print(sunset_local)
 # Define the channel names
 channel_names = ['415nm', '445nm', '480nm', '515nm', '555nm', '590nm', '630nm', '680nm', 'clear']
 
-# Define the conversion matrix [b] from sensor counts to PPFD
-b = np.array([[0.0326119680559049], [-0.0215526943167849], [0.0205996951547832], [-0.0273354958043095],
+# Define the conversion matrix from sensor counts to PPFD
+Count_to_PPFD_coeff = np.array([[0.0326119680559049], [-0.0215526943167849], [0.0205996951547832], [-0.0273354958043095],
               [0.0260108006241511], [-0.00918756282095209], [8.17347418224211e-05], [0.00105726945111030],
               [-0.000102042235789854]])
 
@@ -86,7 +86,7 @@ with open('measurements.csv', 'a', newline='') as csvfile:
             averages = measurements_sum / (Y/X)
 
             # Multiply the average by the conversion matrix and by the amount of seconds it took (Y) (micromol m-2 [Y]s-1)
-            result = np.round((np.dot(b.T, averages))*Y, 0)
+            result = np.round((np.dot(Count_to_PPFD_coeff.T, averages))*Y, 0)
             print(result)
             
             #SENDING TO GOOGLE CLOUD
@@ -113,7 +113,12 @@ with open('measurements.csv', 'a', newline='') as csvfile:
 
             # Reset the counter and measurements sum
             counter = 0
-            measurements_sum = np.zeros((9, 1))                         
-        
+            measurements_sum = np.zeros((9, 1))
+
+        # Check if the LED process has finished 
+        if led_process and led_process.poll() is not None:
+            # Reset the running sum after LED Control.py finishes
+            results_sum = 0    
+
         # Wait for X seconds before taking the next measurement
         time.sleep(X)
