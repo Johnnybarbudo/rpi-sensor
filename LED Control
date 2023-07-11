@@ -1,0 +1,36 @@
+import csv
+import RPi.GPIO as GPIO
+import time
+
+# Open readings file and take the DLI measured from AS7341 at the end of the day 
+with open('measurements.csv', 'r') as csv_file:
+    csv_reader = csv.reader(csv_file)
+    rows = list(csv_reader)
+    DLI_m = rows[-1][-1]
+    DLI_m = float(DLI_m)
+    print('DLI measured was:',DLI_m)
+
+# Calculation of the period of LED op. for a certain brightness and acording to LED's PPFD and optimal DLI of plants.
+B_LED = 1; # Brightness of LEDs = [100%]
+PPFD_LED = 300; #LED_PPFD of 3 blades (at night) in [micromol m-2 s-1]
+DLI_opt = 15;
+if int(DLI_m) < DLI_opt:
+ P_LED = round(((DLI_opt-DLI_m)*1000000)/(PPFD_LED*B_LED)/3600, 2) #hrs that LED stays ON
+else:
+ P_LED=0
+print('Turn LEDs for', P_LED, 'hours')
+print('at', B_LED, 'brightness')
+
+
+# PMW dimming of LEDs 
+GPIO.setmode(GPIO.BCM)
+led_pin = 18 #Check the correct pin in pi
+frequency = 2000 #PMW freq
+GPIO.setup(led_pin, GPIO.OUT)
+pwm = GPIO.PWM(led_pin, frequency)
+dim_level = B_LED*100 #Dimming level (%)
+
+pwm.start(dim_level)
+time.sleep(P_LED) 
+pwm.stop()
+GPIO.cleanup()
