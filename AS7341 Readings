@@ -1,124 +1,243 @@
-## THIS SCRIPT TAKES READINGS (COUNTS) FROM A LIGHT SENSOR (AS7341) EVERY [X=5s], CALCULATES AVERAGES EVERY [Y=120s] AND CONVERTS THEM TO PPFD. 
-## SAVES THE ACCUMULATED SUM OF READINGS IN A CSV FILE AND AT THE END OF THE DAY (WHEN PPFD < 10 [micromol m-2 s-1] AND CURRENT TIME IS PAST SUNSET TIME) 
-## ANOTHER DEPENDENT PROCESS (LED Control.py) IS STARTED. THE DATA IS CONTANTLY SENT TO A GOOGLE CLOUD.
+## This code takes measurements of 3 light sensors AS7341 in 'counts' units for each of the 10 channels and converts to PPFD 
+#  (based on a multiple linear regression coefficient [b] calibrated at the farm). Measures every X(=3) seconds and calculates the average every 
+#  4 reading cycles. It records the PPFD (PPFD) and its accumulated sum (PPFD_sum) during that period (Time_acc), sends it to a csv (measurements.csv) and to 
+#  a Big Query table together with the time stamp and the initial 10 channel counts. At the end of the day (conditioned by: PPFD < 15 & time = sunset) 
+#  the LED_control.py is activated and the LEDs turn on. It continues to take measurements (all the time) and the PPFD accumulated count resets after the LEDs turn off.
+
+#This case is for Barrel 6 (first on the left when entering the farm). For other barrels (currently 4 and 2) change: 
+# Big Query table id
+# pca port number according to the sensor connections;
+# Variable P was refined for each (can be 0)
+
 
 import time
 import csv
 import board
-import adafruit_as7341
+from adafruit_as7341 import AS7341
+import adafruit_tca9548a
 import numpy as np
-from google.cloud import pubsub_v1
+from google.cloud import bigquery
 import os
 import subprocess
 import ephem
 import pytz
 from datetime import date, datetime, timedelta
+from google.api_core.exceptions import RetryError
+from google.auth.exceptions import DefaultCredentialsError
+from requests.exceptions import ConnectionError
+import threading
+import queue
 
+# Initialize the BigQuery client
+table_id = 'environment-data.farm_one.LIGHT_B6'
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/pi/Cloud'
-# Create a publisher client
-publisher = pubsub_v1.PublisherClient()
-project_id = 'datalogger'
-topic_name = 'projects/environment-data/topics/datalogger'
+client = bigquery.Client()
+
+def initialize_bigquery_client():
+    while True:
+        try:
+            client = bigquery.Client()
+            return client
+        except DefaultCredentialsError:
+            print("DefaultCredentialsError: Unable to authenticate. Retrying in 600 seconds...")
+            time.sleep(600)
+        except Exception as e:
+            print(f"An unexpected error occurred while initializing BigQuery client: {e}. Retrying in 600 seconds...")
+            time.sleep(600)
+
+def send_to_bigquery_with_retry(data, client):
+    while True:
+        try:
+            table = client.get_table(table_id)
+            errors = client.insert_rows(table, data)
+            if errors:
+                print("Error inserting rows into BigQuery:", errors)
+            return
+        except RetryError as e:
+            print("RetryError: ", e)
+        except DefaultCredentialsError:
+            print("DefaultCredentialsError: Re-authenticating BigQuery client...")
+            client = initialize_bigquery_client()
+        except Exception as e:
+            print("An unexpected error occurred:", e)
 
 # Initialize the AS7341 sensor
 i2c = board.I2C()
-sensor = adafruit_as7341.AS7341(i2c)
-
-# Set the location for which you want to calculate sunrise and sunset
-latitude = '38.7338'  # Latitude of Beato, Lisbon
-longitude = '-9.1054'  # Longitude of Beato, Lisbon
-# Create a PyEphem observer object
-observer = ephem.Observer()
-observer.lat = latitude
-observer.lon = longitude
-# Set the date to today
-today = date.today()
-observer.date = today.strftime('%Y/%m/%d')
-
-# Calculate sunrise and sunset times (in UTC) and then local times
-sunrise_utc = observer.previous_rising(ephem.Sun()).datetime() 
-sunset_utc = observer.next_setting(ephem.Sun()).datetime()
-local_timezone = pytz.timezone('Europe/Lisbon')  # Adjust to the desired timezone
-sunrise_local = sunrise_utc.astimezone(local_timezone)
-sunset_local = sunset_utc.astimezone(local_timezone)
-print(sunset_local)
+pca = adafruit_tca9548a.TCA9548A(i2c)
+sensor1 = AS7341(pca[5]) #top sensor
+sensor2 = AS7341(pca[0]) #middle sensor
+sensor3 = AS7341(pca[1]) #lower sensor
 
 # Define the channel names
-channel_names = ['415nm', '445nm', '480nm', '515nm', '555nm', '590nm', '630nm', '680nm', 'clear']
+channel_names = ['415nm', '445nm', '480nm', '515nm', '555nm', '590nm', '630nm', '680nm', 'clear', 'nir']
 
-# Define the conversion matrix from sensor counts to PPFD
-Count_to_PPFD_coeff = np.array([[0.0326119680559049], [-0.0215526943167849], [0.0205996951547832], [-0.0273354958043095],
-              [0.0260108006241511], [-0.00918756282095209], [8.17347418224211e-05], [0.00105726945111030],
-              [-0.000102042235789854]])
+# Define the conversion matrix [b] from sensor counts to PPFD
+b = np.array([[-0.259798617914247], [0.519372750955010], [-0.325667605915621], [-0.146907362168532],
+              [0.190374541414311], [0.203441661392086], [-0.150684777829383], [0.0114345340199522],
+              [-0.00157026385139988]])
 
-print("Start of the Natural Light Readings")
+# Define sensor times and nighttime threshold
+X = 3 # Time between sensor readings [s]
+Y = 12 # Timespan to calculate averages [s]
+Z = 20 # Trigger light intensity for night [micromol m-2 s-1]
+P = (-8.59804049) # Avg sensor PPFD at night when it should be 0
 
-# Open a CSV file for writing
-with open('measurements.csv', 'a', newline='') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(['Time', 'Result'])
+# Initialize loops, sumsand led states
+counter = 0
+channels_sum = np.zeros((10, 1))
+PPFD_sum = 0
 
-    X = 5 # Time between sensor readings [s]
-    Y = 120 # Timespan to calculate averages [s]
-    Z = 10 # Trigger light intensity for night [micromol m-2 s-1]
-    
+# Create a queue to share data between threads
+data_queue = queue.Queue(10000)
+
+# Function to read sensors
+def read_sensors():
+    global counter, channels_sum, PPFD_sum
+
+    lag_sum = 0
+    Time_acc = 0
     led_start_time = None
     led_process = None
     last_led_process_date = None
-    
-    # Loop to take measurements every X seconds
-    counter = 0
-    measurements_sum = np.zeros((9, 1))
-    results_sum = 0
-    
+
     while True:
-        timestamp = time.time()
-        
-        # Take measurements 
-        measurements = np.array([sensor.__getattribute__('channel_' + name.lower()) for name in channel_names]).reshape((9, 1))
-        measurements_sum += measurements # Add the measurements to the sum
-        
-        counter += 1 # Increment the counter
+        try:
+            timestamp = time.time()
 
-        # Check if Y/X measurements have been taken
-        if counter == Y/X:
-            # Calculate the average of the 30 measurements for the 120 [60X] seconds
-            averages = measurements_sum / (Y/X)
+            # Take measurements for the three sensors and calculate the average
+            start_sensor = time.time()
+            channels_s1 = np.array([sensor1.__getattribute__('channel_' + name.lower()) for name in channel_names]).reshape((10, 1))
+            channels_s2 = np.array([sensor2.__getattribute__('channel_' + name.lower()) for name in channel_names]).reshape((10, 1))
+            channels_s3 = np.array([sensor3.__getattribute__('channel_' + name.lower()) for name in channel_names]).reshape((10, 1))
+            end_sensor = time.time()
+            lag = end_sensor - start_sensor
+            channels_savg = (channels_s1+channels_s2+channels_s3)/3
 
-            # Multiply the average by the conversion matrix and by the amount of seconds it took (Y) (micromol m-2 [Y]s-1)
-            result = np.round((np.dot(Count_to_PPFD_coeff.T, averages))*Y, 0)
-            print(result)
-            
-            #SENDING TO GOOGLE CLOUD
-            topic_path = publisher.topic_path('datalogger', 'projects/environment-data/topics/datalogger')
-            publisher.publish('projects/environment-data/topics/datalogger', str(result[0][0]).encode())
-            
-            # Write the time and result
-            writer.writerow([time.strftime('%Y-%m-%d %H:%M:%S'), result[0][0]])
-            csvfile.flush()
-            # Add the result to the running sum
-            results_sum += result[0][0]
-            print(results_sum)
-            writer.writerow(["DLI =", results_sum])
-            csvfile.flush()
-            
-            # Check if the result is below the nighttime threshold and if it's past sunset time
-            if result[0][0] < Z * Y and datetime.now().astimezone(local_timezone) > sunset_local:
-            # Check if the LED process has already been started for the current day
-                if last_led_process_date != today:
-                    # Start the LED Control subprocess
-                    led_process = subprocess.Popen(['python', 'LED Control.py'])
-                    led_start_time = datetime.now()
-                    last_led_process_date = today
+            #Preventing shadowed readings (assuming shadows cause >=70% drop to the highest nonshadow one). Assumes at least one isn't shadowed.
+            highest_clear = max(channels_s1[8][0], channels_s2[8][0], channels_s3[8][0])
+            threshold = 0.3 * highest_clear
+            if channels_s1[8][0] < threshold:
+                channels_savg = (channels_s2 + channels_s3)/2
+                print('SHADOW!')
+            if channels_s2[8][0] < threshold:
+                channels_savg = (channels_s1+channels_s3)/2
+                print('SHADOW!')
+            if channels_s3[8][0] < threshold:
+                channels_savg =(channels_s2+channels_s1)/2
+                print('SHADOW!')
 
-            # Reset the counter and measurements sum
-            counter = 0
-            measurements_sum = np.zeros((9, 1))
+            channels_sum += np.round(channels_savg,0)
+            lag_sum += lag
 
-        # Check if the LED process has finished 
-        if led_process and led_process.poll() is not None:
-            # Reset the running sum after LED Control.py finishes
-            results_sum = 0    
+            counter += 1 # Increment the counter
+
+            # Check if Y/X measurements have been taken !!make sure Y/X is a whole number!!
+            if counter == Y/X:
+
+                # Set the location for which you want to calculate sunrise and sunset
+                latitude = '38.7338'  # Latitude of Beato, Lisbon
+                longitude = '-9.1054'  # Longitude of Beato, Lisbon
+                observer = ephem.Observer()
+                observer.lat = latitude
+                observer.lon = longitude
+                today = date.today()
+                observer.date = today.strftime('%Y/%m/%d')
+                sunrise_utc = observer.previous_rising(ephem.Sun()).datetime()
+                sunset_utc = observer.next_setting(ephem.Sun()).datetime()
+                local_timezone = pytz.timezone('Europe/Lisbon')  # Adjust to the desired timezone
+                sunrise_local = sunrise_utc.astimezone(local_timezone)
+                sunset_local = sunset_utc.astimezone(local_timezone)
+                
+                # Calculate the average light measured each reading during Y [count s-1]
+                channels_Yavg = channels_sum / (Y/X)
+                channels_PAR = channels_Yavg[:9] #Just the PAR channels (without the NIR)
+                lag_avg = lag_sum/(Y/X)
+
+
+                # Multiply the average by the conversion matrix and by the amount of seconds it took (Y) (micromol m-2 [Y]s-1)
+                if led_process is None:
+                    PPFD_Y_b = max((-4.321), np.round(((np.dot(b.T, channels_PAR))-P) *(Y/X)*(X+lag_avg), 0)) #Accumulated PPFD in Y seconds
+                else:
+                    PPFD_Y_b = max(0, channels_Yavg[8][0]*(Y/X)*(X+lag_avg) * (750/47000)*(300/118))
+
+                #Depending on the the previous, PPFD_Y_b is going to come as either a array or scalar respectivly
+                if isinstance(PPFD_Y_b, (list, np.ndarray)):
+                    PPFD_Y = float(PPFD_Y_b[0])
+                else:
+                    PPFD_Y = float(PPFD_Y_b)
+
+                PPFD = np.round(PPFD_Y/((Y/X)*(X+lag_avg)), 0) #Average PPFD during Y seconds
+                PPFD_sum += PPFD_Y
+                Time_cycle = (Y/X)*(X+lag_avg)
+                Time_acc += Time_cycle
+                print('PPFD =', PPFD)
+                print('PPFD Accumulated:', PPFD_sum, 'micromol m-2', Time_acc, 's-1')
+                time_s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                data_queue.put((time_s, PPFD, PPFD_sum, Time_acc, channels_s1, channels_s2, channels_s3, lag_avg, channels_Yavg))
+                print('Time of acc:', time_s)
+                lag_sum = 0
+
+                # Write to the csv to be used by LED_control.py
+                with open('measurements.csv', 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow([time.strftime('%Y-%m-%d %H:%M:%S'), "PPFD =", PPFD])
+                    csvfile.flush()
+                    writer.writerow(["PPFD Accumulated =", PPFD_sum])
+                    csvfile.flush()
+
+                # Check if the result is below the nighttime threshold and if it's around sunset time
+                if PPFD < Z and (sunset_local - timedelta(hours=1)) <= datetime.now().astimezone(local_timezone) <= (sunset_local + timedelta(hours=1)):
+                # Start the LED Control subprocess if it's not already running
+                    if not led_process:
+                        DLI_sun = PPFD_sum
+                        # Start the LED Control subprocess
+                        led_process = subprocess.Popen(['python', 'LED_control.py'])
+                        led_start_time = datetime.now()
+
+                # Reset the counter and measurements sum
+                counter = 0
+                channels_sum = np.zeros((10, 1))
+
+            # Check if the LED process has finished
+            if led_process and led_process.poll() is not None:
+                # Reset the running sum after LED Control.py finishes
+                PPFD_sum = 0
+                Time_acc = 0
+                led_process = None
+
+        except Exception as e:
+            print("An error occurred in the sensor loop:", e)
 
         # Wait for X seconds before taking the next measurement
         time.sleep(X)
+
+
+# Function to send data to BigQuery
+def send_data_to_bigquery():
+    while True:
+        try:
+            if counter == Y/X:
+                time_s, PPFD, PPFD_sum, Time_acc, channels_s1, channels_s2, channels_s3, lag_avg, channels_Yavg = data_queue.get()
+
+                # Insert into BigQuery table
+                table_id = 'environment-data.farm_one.LIGHT_B6'  # Replace with your BigQuery table ID
+                table = client.get_table(table_id)
+                row = [(time_s, PPFD, PPFD_sum, Time_acc, channels_s1[8][0], channels_s2[8][0], channels_s3[8][0]) + tuple(channels_Yavg.flatten().tolist())]
+                print(row)
+                errors = client.insert_rows(table, row)
+
+        except Exception as e:
+            print("An error occurred while sending data to BigQuery:", e)
+
+
+# Create threads for sensor reading and data sending
+sensor_thread = threading.Thread(target=read_sensors)
+bigquery_thread = threading.Thread(target=send_data_to_bigquery)
+
+# Start the threads
+sensor_thread.start()
+bigquery_thread.start()
+
+# Wait for the threads to finish (this will never happen in this setup)
+sensor_thread.join()
+bigquery_thread.join()
