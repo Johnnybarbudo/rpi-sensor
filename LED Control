@@ -48,7 +48,7 @@ LED_start = datetime.now(pytz.timezone('Europe/Lisbon')) - timedelta(hours=1)
 if sunrise_local < LED_start:
     # If sunrise is on the same day, add one day to sunrise_time
     sunrise_local += timedelta(days=1)
-P_dark = 6 #hrs
+P_dark = 7 #hrs
 P_day = (LED_start - sunrise_local)
 P_day_sec = P_day.total_seconds()
 P_LED = round(((24*3600 - P_day_sec) - P_dark*3600)/3600, 3) #hrs
