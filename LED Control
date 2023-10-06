@@ -1,36 +1,97 @@
+## This code activates the LEDs for a certain period [P_LED] at a certain brightness [B_LED] depending on the sunlight DLI (DLI_m) of the day and the target one (DLI_opt). The DLI_m is the last PPFD accumulation value logged into measurements.csv by the sensor code for that day. P_LED is defined by the starting time of LEDs (sunset) until [P_dark] hrs before sunrise. B_LED is controlled by a PWM dimming signal sent to the LED PSU, converted to 0-10V signal which regulates the intensity between 10-100%. Currently to fully turn OFF the LEDs the shelly switch is required. The LED operation variables are logged in a BQ table. 
+
 import csv
 import RPi.GPIO as GPIO
+import ephem
+import pytz
+from datetime import date, datetime, timedelta
 import time
+from google.cloud import pubsub_v1, bigquery
+import os
 
-# Open readings file and take the DLI measured from AS7341 at the end of the day 
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/pi/Cloud'
+# Create a publisher client
+publisher = pubsub_v1.PublisherClient()
+project_id = 'datalogger'
+topic_name = 'projects/environment-data/topics/datalogger'
+client = bigquery.Client()
+
+# Open readings file and take the DLI measured at the end of the day (check units)
 with open('measurements.csv', 'r') as csv_file:
     csv_reader = csv.reader(csv_file)
     rows = list(csv_reader)
     DLI_m = rows[-1][-1]
     DLI_m = float(DLI_m)
+    DLI_m = round(DLI_m/1000000, 4) #micromol m-2 s-1 => mol m-2 d-1
     print('DLI measured was:',DLI_m)
 
-# Calculation of the period of LED op. for a certain brightness and acording to LED's PPFD and optimal DLI of plants.
-B_LED = 1; # Brightness of LEDs = [100%]
-PPFD_LED = 300; #LED_PPFD of 3 blades (at night) in [micromol m-2 s-1]
-DLI_opt = 15;
+# Set the location for which you want to calculate sunrise and sunset
+latitude = '38.7338'  # Latitude of Beato, Lisbon
+longitude = '-9.1054'  # Longitude of Beato, Lisbon
+# Create a PyEphem observer object
+observer = ephem.Observer()
+observer.lat = latitude
+observer.lon = longitude
+# Set the date to today
+today = date.today()
+observer.date = today.strftime('%Y/%m/%d')
+
+# Calculate sunrise and sunset times (in UTC) and then local times
+sunrise_utc = observer.previous_rising(ephem.Sun()).datetime()
+sunset_utc = observer.next_setting(ephem.Sun()).datetime()
+local_timezone = pytz.timezone('Europe/Lisbon')  # Adjust to the desired timezone
+sunrise_local = sunrise_utc.astimezone(local_timezone)
+sunset_local = sunset_utc.astimezone(local_timezone)
+
+#Calculate the period of LED op. [P_LED] that allows a dark period [P_dark] to the plants
+LED_start = datetime.now(pytz.timezone('Europe/Lisbon')) - timedelta(hours=1)
+if sunrise_local < LED_start:
+    # If sunrise is on the same day, add one day to sunrise_time
+    sunrise_local += timedelta(days=1)
+P_dark = 6 #hrs
+P_day = (LED_start - sunrise_local)
+P_day_sec = P_day.total_seconds()
+P_LED = round(((24*3600 - P_day_sec) - P_dark*3600)/3600, 3) #hrs
+
+#Calculate the Light brightness
+PPFD_LED = 750; #LED_PPFD of 3 blades (at night) measured in the stem base [micromol m-2 s-1] (525 for the barrel wall and 892 10cm from the wall)
+DLI_opt = 17.5;
+
 if int(DLI_m) < DLI_opt:
- P_LED = round(((DLI_opt-DLI_m)*1000000)/(PPFD_LED*B_LED)/3600, 2) #hrs that LED stays ON
+ B_LED = round((((DLI_opt-DLI_m)*1000000)/(PPFD_LED*P_LED))/3600,2) #Brightness of LED
+ B_LED_r = min(1,B_LED)
 else:
- P_LED=0
+ B_LED_r = 0
+ B_LED = 0 
 print('Turn LEDs for', P_LED, 'hours')
 print('at', B_LED, 'brightness')
 
+#Sending to GCP
+topic_path = publisher.topic_path('datalogger', 'projects/environment-data/topics/datalogger')
+publisher.publish('projects/environment-data/topics/datalogger', str(DLI_m).encode())
 
-# PMW dimming of LEDs 
+# Insert into BigQuery table
+table_id = 'environment-data.farm_one.LED_B2'  # Replace with your BigQuery table ID
+table = client.get_table(table_id)
+row = [(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), DLI_m, DLI_opt, B_LED, P_LED, P_dark)]
+print(row)
+errors = client.insert_rows(table, row)
+if not errors:
+    print("Data inserted successfully into BigQuery.")
+else:
+    print("Errors occurred while inserting data into BigQuery:")
+    for error in errors:
+        print(error)
+
+# PMW dimming of LEDs
 GPIO.setmode(GPIO.BCM)
 led_pin = 18 #Check the correct pin in pi
-frequency = 2000 #PMW freq
+frequency = 500 #PMW freq
 GPIO.setup(led_pin, GPIO.OUT)
 pwm = GPIO.PWM(led_pin, frequency)
-dim_level = B_LED*100 #Dimming level (%)
+dim_level = B_LED_r*100 #Dimming level (%)
 
 pwm.start(dim_level)
-time.sleep(P_LED) 
+time.sleep(P_LED*3600) #Substitute with LED period (s)
 pwm.stop()
 GPIO.cleanup()
