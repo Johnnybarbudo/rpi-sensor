@@ -119,6 +119,9 @@ PPFD_sum = 0
 # Create a queue to share data between threads
 data_queue = queue.Queue(10000)
 
+# Create a flag to control the threads
+running = True
+
 
 # Function to read sensors
 def read_sensors():
@@ -130,7 +133,8 @@ def read_sensors():
     led_process = None
     last_led_process_date = None
 
-    while True:
+    global running
+    while running:
         try:
             timestamp = time.time()
 
@@ -288,6 +292,7 @@ def read_sensors():
         except Exception as e:
             traceback.print_exc()
             print("An error occurred in the sensor loop:", e)
+            break  # Break the loop to restart the thread
 
         # Wait for X seconds before taking the next measurement
         time.sleep(X)
@@ -295,7 +300,8 @@ def read_sensors():
 
 # Function to send data to BigQuery
 def send_data_to_bigquery():
-    while True:
+    global running
+    while running:
         try:
             if counter == Y / X:
                 (
@@ -331,30 +337,8 @@ def send_data_to_bigquery():
         except Exception as e:
             traceback.print_exc()
             print("An error occurred while sending data to BigQuery:", e)
-
-
-# Create a flag to control the threads
-running = True
-
-def read_sensors():
-    global running
-    while running:
-        try:
-            # Your existing code here
-        except Exception as e:
-            traceback.print_exc()
-            print("An error occurred in the sensor loop:", e)
             break  # Break the loop to restart the thread
 
-def send_data_to_bigquery():
-    global running
-    while running:
-        try:
-            # Your existing code here
-        except Exception as e:
-            traceback.print_exc()
-            print("An error occurred while sending data to BigQuery:", e)
-            break  # Break the loop to restart the thread
 
 while running:
     # Create threads for sensor reading and data sending
